@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APDP — Predicción de Demanda</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f3f4f6;
+    color: #1f2937;
+    min-height: 100vh;
+    padding: 0;
+  }
+  .header {
+    background: linear-gradient(135deg, #1F4E79 0%, #2E75B6 100%);
+    color: white;
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo {
+    width: 40px; height: 40px;
+    background: white;
+    color: #1F4E79;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px;
+  }
+  .header h1 { font-size: 18px; font-weight: 600; }
+  .header p { font-size: 12px; opacity: 0.85; }
+  .demo-banner {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border-left: 4px solid #2E75B6;
+  }
+  .kpi-card.alert { border-left-color: #f59e0b; }
+  .kpi-card.danger { border-left-color: #dc2626; }
+  .kpi-card.success { border-left-color: #16a34a; }
+  .kpi-label {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1F4E79;
+    margin-top: 4px;
+  }
+  .kpi-trend {
+    font-size: 12px;
+    margin-top: 4px;
+    color: #16a34a;
+  }
+  .kpi-trend.down { color: #dc2626; }
+  .main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .panel {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1F4E79;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .selector {
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    background: white;
+    cursor: pointer;
+    color: #1f2937;
+  }
+  .chart-container {
+    position: relative;
+    height: 360px;
+  }
+  .alert-list { max-height: 360px; overflow-y: auto; }
+  .alert-item {
+    padding: 12px;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .alert-item:hover { background: #f9fafb; }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .alert-sku {
+    font-weight: 600;
+    font-size: 13px;
+    color: #1F4E79;
+  }
+  .alert-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .badge-ruptura { background: #fee2e2; color: #991b1b; }
+  .badge-sobrestock { background: #fef3c7; color: #92400e; }
+  .alert-desc {
+    font-size: 11px;
+    color: #6b7280;
+  }
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    font-size: 11px;
+    color: #6b7280;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+  .insights {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .insights h3 {
+    font-size: 13px;
+    color: #1e40af;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .insights ul {
+    list-style: none;
+    font-size: 12px;
+    color: #1e3a8a;
+  }
+  .insights ul li {
+    padding: 3px 0;
+    padding-left: 16px;
+    position: relative;
+  }
+  .insights ul li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: #2563eb;
+  }
+  .scenario-controls {
+    background: #f9fafb;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .scenario-controls label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #4b5563;
+  }
+  .scenario-controls input[type="range"] {
+    width: 120px;
+  }
+  .scenario-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1F4E79;
+    min-width: 40px;
+  }
+  .model-info {
+    background: #f9fafb;
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 12px;
+    font-size: 11px;
+    color: #6b7280;
+    line-height: 1.6;
+  }
+  .model-info strong { color: #1f2937; }
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .main-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">AP</div>
+    <div>
+      <h1>APDP — Sistema de Predicción de Demanda</h1>
+      <p>Powered by Azure Machine Learning · Modelo XGBoost · Última actualización: hoy 06:30</p>
+    </div>
+  </div>
+  <div class="demo-banner">⚠ Mock — Iniciativa B del TP de Gestión de la IA</div>
+</div>
+
+<div class="container">
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card success">
+      <div class="kpi-label">SKUs analizados</div>
+      <div class="kpi-value">1.247</div>
+      <div class="kpi-trend">+23 desde el mes pasado</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Precisión del modelo (MAPE)</div>
+      <div class="kpi-value">8,4%</div>
+      <div class="kpi-trend">↓ Mejor que el mes anterior (9,1%)</div>
+    </div>
+    <div class="kpi-card alert">
+      <div class="kpi-label">SKUs con alerta activa</div>
+      <div class="kpi-value">34</div>
+      <div class="kpi-trend down">17 ruptura · 17 sobrestock</div>
+    </div>
+    <div class="kpi-card success">
+      <div class="kpi-label">Capital optimizado YTD</div>
+      <div class="kpi-value">USD 218K</div>
+      <div class="kpi-trend">Stock muerto reducido 26%</div>
+    </div>
+  </div>
+
+  <!-- Main Grid: Chart + Alertas -->
+  <div class="main-grid">
+    <div class="panel">
+      <div class="panel-title">
+        <span>Predicción de demanda por SKU</span>
+        <select class="selector" id="skuSelector" onchange="renderChart()"></select>
+      </div>
+
+      <div class="scenario-controls">
+        <label>📊 Escenario: variación esperada de demanda</label>
+        <input type="range" min="-30" max="30" value="0" id="scenarioSlider" oninput="onScenarioChange()">
+        <span class="scenario-value" id="scenarioValue">0%</span>
+        <span style="font-size: 11px; color: #6b7280; margin-left: 8px;">(simulá impacto macroeconómico)</span>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="demandChart"></canvas>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><span class="legend-color" style="background: #1F4E79;"></span> Histórico (24 meses)</div>
+        <div class="legend-item"><span class="legend-color" style="background: #2E75B6;"></span> Predicción central (P50)</div>
+        <div class="legend-item"><span class="legend-color" style="background: rgba(46, 117, 182, 0.2);"></span> Intervalo de confianza (P10–P90)</div>
+      </div>
+
+      <div class="model-info" id="modelInfo">
+        <strong>Variables utilizadas por el modelo:</strong> histórico ventas, estacionalidad mensual, precio internacional del acero, parque automotor argentino vigente, tipo de cambio oficial, IPC, eventos macro.
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">⚠ Alertas activas</div>
+      <div class="alert-list" id="alertList"></div>
+    </div>
+  </div>
+
+  <!-- Insights generados -->
+  <div class="panel">
+    <div class="panel-title">💡 Insights del modelo este mes</div>
+    <div class="insights">
+      <h3>Recomendaciones automáticas para Gerencia de Operaciones y Compras</h3>
+      <ul>
+        <li>Anticipar producción de <strong>AP-4521 (Hilux 4x4)</strong> y <strong>AP-3201 (Ranger)</strong>: la demanda proyectada Mayo-Julio supera en 32% el promedio anual por estacionalidad otoño-invierno.</li>
+        <li>Revisar promoción de <strong>AP-2106 (Amarok trasero)</strong>: 8 meses sin movimiento significativo y stock proyectado supera 9 meses de cobertura.</li>
+        <li>Consolidar compra de acero al cierre del Q2: las predicciones agregadas de SKUs base muestran un peak de demanda en Junio (+18% vs. Mayo).</li>
+        <li>Riesgo de ruptura proyectado para <strong>AP-6010 (Cronos)</strong>: solicitar producción anticipada antes del 15 de mayo para cubrir demanda esperada de Junio.</li>
+        <li>El modelo detectó cambio de pendiente en la demanda de extremos de dirección Renault (ED-1010): posible efecto de venta intensiva de Sandero en abril; mantener monitoreo semanal.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// DATOS SINTÉTICOS PERO REALISTAS
+// ==========================================
+const SKUs = [
+  { sku: "AP-4521", desc: "Amortiguador delantero Hilux 4x4", base: 280, season: 1.4, trend: 0.8, alert: "ruptura", criticality: "Alta" },
+  { sku: "AP-4522", desc: "Amortiguador trasero Hilux 4x4", base: 240, season: 1.4, trend: 0.6, alert: null },
+  { sku: "AP-3201", desc: "Amortiguador delantero Ranger", base: 220, season: 1.3, trend: 1.0, alert: "ruptura", criticality: "Alta" },
+  { sku: "AP-2105", desc: "Amortiguador delantero Amarok", base: 110, season: 1.2, trend: -0.5, alert: null },
+  { sku: "AP-2106", desc: "Amortiguador trasero Amarok", base: 95, season: 1.2, trend: -1.2, alert: "sobrestock", criticality: "Media" },
+  { sku: "AP-1810", desc: "Amortiguador delantero S10", base: 160, season: 1.2, trend: 0.3, alert: null },
+  { sku: "AP-5510", desc: "Amortiguador delantero Sandero", base: 380, season: 1.15, trend: 1.5, alert: null },
+  { sku: "AP-6010", desc: "Amortiguador delantero Cronos", base: 320, season: 1.2, trend: 2.0, alert: "ruptura", criticality: "Alta" },
+  { sku: "AP-7010", desc: "Amortiguador delantero Peugeot 208", base: 290, season: 1.15, trend: 0.4, alert: null },
+  { sku: "AP-8010", desc: "Amortiguador delantero Gol", base: 410, season: 1.1, trend: -0.3, alert: "sobrestock", criticality: "Baja" },
+  { sku: "ED-1001", desc: "Extremo dirección Hilux", base: 180, season: 1.1, trend: 0.5, alert: null },
+  { sku: "ED-1010", desc: "Extremo dirección Sandero", base: 240, season: 1.1, trend: 1.8, alert: null },
+];
+
+// Meses
+const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+// Generador de serie histórica + predicción con estacionalidad realista (hemisferio sur: pico abr-ago)
+function generateSeries(sku) {
+  const historical = [];
+  const labelsHist = [];
+  const seasonality = [0.85, 0.85, 0.95, 1.15, 1.30, 1.40, 1.35, 1.25, 1.05, 0.95, 0.90, 0.85]; // pico otoño-invierno
+
+  // 24 meses históricos (mayo 2024 -> abril 2026)
+  const baseYear = 2024;
+  let monthIdx = 4; // empieza en mayo
+  let yearOffset = 0;
+  for (let i = 0; i < 24; i++) {
+    const m = monthIdx % 12;
+    const trendFactor = 1 + (sku.trend * i / 200);
+    const noise = 1 + (Math.random() - 0.5) * 0.15;
+    const value = Math.round(sku.base * seasonality[m] * trendFactor * noise);
+    historical.push(value);
+    labelsHist.push(`${MESES[m]} ${(baseYear + yearOffset).toString().substr(2)}`);
+    monthIdx++;
+    if (monthIdx % 12 === 0) yearOffset++;
+  }
+
+  // 6 meses de predicción (mayo 2026 -> octubre 2026)
+  const predictionP50 = [];
+  const predictionP10 = [];
+  const predictionP90 = [];
+  const labelsPred = [];
+  for (let i = 0; i < 6; i++) {
+    const m = monthIdx % 12;
+    const trendFactor = 1 + (sku.trend * (24 + i) / 200);
+    const central = sku.base * seasonality[m] * trendFactor;
+    const ci = central * 0.12; // intervalo de confianza ±12%
+    predictionP50.push(Math.round(central));
+    predictionP10.push(Math.round(central - ci));
+    predictionP90.push(Math.round(central + ci));
+    labelsPred.push(`${MESES[m]} ${(baseYear + yearOffset).toString().substr(2)}`);
+    monthIdx++;
+    if (monthIdx % 12 === 0) yearOffset++;
+  }
+
+  return {
+    labels: [...labelsHist, ...labelsPred],
+    historical: [...historical, ...Array(6).fill(null)],
+    predictionP50: [...Array(24).fill(null), ...predictionP50],
+    predictionP10: [...Array(24).fill(null), ...predictionP10],
+    predictionP90: [...Array(24).fill(null), ...predictionP90],
+    splitPoint: 24
+  };
+}
+
+// ==========================================
+// UI: poblar selector
+// ==========================================
+const selector = document.getElementById("skuSelector");
+SKUs.forEach((s, i) => {
+  const opt = document.createElement("option");
+  opt.value = i;
+  opt.textContent = `${s.sku} — ${s.desc}`;
+  selector.appendChild(opt);
+});
+
+// ==========================================
+// Chart
+// ==========================================
+let chart;
+let scenarioMultiplier = 1.0;
+
+function renderChart() {
+  const sku = SKUs[selector.value];
+  const series = generateSeries(sku);
+
+  // Aplicar escenario solo a predicciones
+  const adjP50 = series.predictionP50.map(v => v === null ? null : Math.round(v * scenarioMultiplier));
+  const adjP10 = series.predictionP10.map(v => v === null ? null : Math.round(v * scenarioMultiplier));
+  const adjP90 = series.predictionP90.map(v => v === null ? null : Math.round(v * scenarioMultiplier));
+
+  // Conectar último histórico con primera predicción
+  const lastHist = series.historical[series.splitPoint - 1];
+  const connP50 = [...adjP50];
+  connP50[series.splitPoint - 1] = lastHist;
+  const connP10 = [...adjP10];
+  connP10[series.splitPoint - 1] = lastHist;
+  const connP90 = [...adjP90];
+  connP90[series.splitPoint - 1] = lastHist;
+
+  if (chart) chart.destroy();
+  const ctx = document.getElementById("demandChart").getContext("2d");
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: series.labels,
+      datasets: [
+        {
+          label: "P90 (banda superior)",
+          data: connP90,
+          borderColor: "transparent",
+          backgroundColor: "rgba(46, 117, 182, 0.15)",
+          fill: "+1",
+          pointRadius: 0,
+          tension: 0.3,
+        },
+        {
+          label: "P10 (banda inferior)",
+          data: connP10,
+          borderColor: "transparent",
+          backgroundColor: "rgba(46, 117, 182, 0.15)",
+          fill: false,
+          pointRadius: 0,
+          tension: 0.3,
+        },
+        {
+          label: "Predicción (P50)",
+          data: connP50,
+          borderColor: "#2E75B6",
+          backgroundColor: "#2E75B6",
+          borderDash: [6, 4],
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.3,
+          fill: false,
+        },
+        {
+          label: "Histórico",
+          data: series.historical,
+          borderColor: "#1F4E79",
+          backgroundColor: "#1F4E79",
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.3,
+          fill: false,
+          borderWidth: 2.5,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              if (ctx.parsed.y === null) return null;
+              return `${ctx.dataset.label}: ${ctx.parsed.y} u.`;
+            }
+          },
+          filter: function(item) {
+            return item.parsed.y !== null && !item.dataset.label.includes("banda");
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: false,
+          title: { display: true, text: "Unidades / mes", font: { size: 11 } },
+          grid: { color: "#e5e7eb" }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10 } }
+        }
+      }
+    }
+  });
+
+  updateModelInfo(sku, adjP50);
+}
+
+function updateModelInfo(sku, predictions) {
+  const total = predictions.filter(v => v !== null).reduce((a, b) => a + b, 0);
+  const promedio = Math.round(total / 6);
+  const variacion = scenarioMultiplier !== 1.0 ? `<br><strong>Ajuste por escenario:</strong> ${((scenarioMultiplier - 1) * 100).toFixed(0)}%` : "";
+  document.getElementById("modelInfo").innerHTML = `
+    <strong>SKU seleccionado:</strong> ${sku.sku} — ${sku.desc}<br>
+    <strong>Demanda total proyectada próximos 6 meses:</strong> ${total.toLocaleString()} unidades<br>
+    <strong>Promedio mensual proyectado:</strong> ${promedio.toLocaleString()} unidades<br>
+    <strong>Variables utilizadas:</strong> histórico (24 meses), estacionalidad, precio del acero, parque automotor, tipo de cambio, IPC.${variacion}
+  `;
+}
+
+function onScenarioChange() {
+  const val = parseInt(document.getElementById("scenarioSlider").value);
+  scenarioMultiplier = 1 + (val / 100);
+  document.getElementById("scenarioValue").textContent = (val > 0 ? "+" : "") + val + "%";
+  renderChart();
+}
+
+// ==========================================
+// Lista de alertas
+// ==========================================
+function renderAlerts() {
+  const list = document.getElementById("alertList");
+  list.innerHTML = "";
+  SKUs.filter(s => s.alert).forEach((s, idx) => {
+    const item = document.createElement("div");
+    item.className = "alert-item";
+    item.onclick = () => {
+      const realIdx = SKUs.findIndex(x => x.sku === s.sku);
+      selector.value = realIdx;
+      renderChart();
+      document.querySelector('.main-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const badgeClass = s.alert === "ruptura" ? "badge-ruptura" : "badge-sobrestock";
+    const desc = s.alert === "ruptura"
+      ? `Demanda proyectada supera stock + producción comprometida en los próximos 60 días.`
+      : `Cobertura proyectada de stock supera 9 meses al ritmo de demanda actual.`;
+
+    item.innerHTML = `
+      <div class="alert-header">
+        <span class="alert-sku">${s.sku}</span>
+        <span class="alert-badge ${badgeClass}">${s.alert}</span>
+      </div>
+      <div class="alert-desc"><strong>${s.desc}</strong></div>
+      <div class="alert-desc" style="margin-top: 4px;">${desc}</div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+// Init
+window.onload = () => {
+  renderAlerts();
+  renderChart();
+};
+</script>
+</body>
+</html>

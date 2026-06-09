@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APDP — Detección de Anomalías Financieras</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f3f4f6;
+    color: #1f2937;
+    min-height: 100vh;
+  }
+  .header {
+    background: linear-gradient(135deg, #1F4E79 0%, #2E75B6 100%);
+    color: white;
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo {
+    width: 40px; height: 40px;
+    background: white;
+    color: #1F4E79;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px;
+  }
+  .header h1 { font-size: 18px; font-weight: 600; }
+  .header p { font-size: 12px; opacity: 0.85; }
+  .demo-banner {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border-left: 4px solid #16a34a;
+  }
+  .kpi-card.alert { border-left-color: #f59e0b; }
+  .kpi-card.danger { border-left-color: #dc2626; }
+  .kpi-card.info { border-left-color: #2E75B6; }
+  .kpi-label {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1F4E79;
+    margin-top: 4px;
+  }
+  .kpi-value.red { color: #dc2626; }
+  .kpi-value.green { color: #16a34a; }
+  .kpi-value.amber { color: #f59e0b; }
+  .kpi-trend {
+    font-size: 12px;
+    margin-top: 4px;
+    color: #6b7280;
+  }
+  .panel {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    margin-bottom: 16px;
+  }
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1F4E79;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .filters {
+    display: flex;
+    gap: 8px;
+  }
+  .filter-btn {
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    font-size: 12px;
+    cursor: pointer;
+    color: #4b5563;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover {
+    background: #f3f4f6;
+  }
+  .filter-btn.active {
+    background: #1F4E79;
+    color: white;
+    border-color: #1F4E79;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    background: #f9fafb;
+    color: #4b5563;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  td {
+    padding: 12px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #1f2937;
+  }
+  tr.tx-row {
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  tr.tx-row:hover { background: #f9fafb; }
+  .score-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .score-low { background: #d1fae5; color: #065f46; }
+  .score-medium { background: #fef3c7; color: #92400e; }
+  .score-high { background: #fee2e2; color: #991b1b; }
+  .score-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+  .score-dot.low { background: #10b981; }
+  .score-dot.medium { background: #f59e0b; }
+  .score-dot.high { background: #ef4444; }
+  .amount { font-family: ui-monospace, "SF Mono", Monaco, monospace; font-weight: 600; }
+  .status-pill {
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .status-pending { background: #e0e7ff; color: #3730a3; }
+  .status-approved { background: #d1fae5; color: #065f46; }
+  .status-blocked { background: #fee2e2; color: #991b1b; }
+  /* Drawer */
+  .drawer-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    display: none;
+    animation: fadeIn 0.2s;
+  }
+  .drawer-bg.open { display: block; }
+  .drawer {
+    position: fixed;
+    top: 0; right: 0;
+    width: 100%;
+    max-width: 540px;
+    height: 100vh;
+    background: white;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.2);
+    z-index: 101;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .drawer-header h2 {
+    font-size: 18px;
+    color: #1F4E79;
+  }
+  .close-btn {
+    background: #f3f4f6;
+    border: none;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+  }
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 13px;
+  }
+  .detail-row strong { color: #4b5563; }
+  .reason-card {
+    background: #fef3c7;
+    border-left: 3px solid #f59e0b;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 16px 0;
+    font-size: 12px;
+  }
+  .reason-card.danger {
+    background: #fee2e2;
+    border-left-color: #dc2626;
+  }
+  .reason-card h4 {
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: #92400e;
+  }
+  .reason-card.danger h4 { color: #991b1b; }
+  .reason-card ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .reason-card ul li {
+    padding: 3px 0;
+    padding-left: 16px;
+    position: relative;
+    color: #78350f;
+  }
+  .reason-card.danger ul li { color: #7f1d1d; }
+  .reason-card ul li::before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+  }
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+  }
+  .btn-approve { background: #16a34a; color: white; }
+  .btn-approve:hover { background: #15803d; }
+  .btn-block { background: #dc2626; color: white; }
+  .btn-block:hover { background: #b91c1c; }
+  .btn-review { background: #f59e0b; color: white; }
+  .btn-review:hover { background: #d97706; }
+  .score-meter {
+    margin: 20px 0;
+  }
+  .meter-track {
+    width: 100%;
+    height: 12px;
+    background: linear-gradient(to right, #10b981 0%, #f59e0b 50%, #ef4444 100%);
+    border-radius: 6px;
+    position: relative;
+  }
+  .meter-pointer {
+    position: absolute;
+    top: -8px;
+    width: 4px;
+    height: 28px;
+    background: #1f2937;
+    transform: translateX(-50%);
+    border-radius: 2px;
+  }
+  .meter-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 10px;
+    color: #6b7280;
+  }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1f2937;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    transform: translateY(20px);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">AP</div>
+    <div>
+      <h1>APDP — Detección de Anomalías Financieras</h1>
+      <p>Powered by Microsoft Sentinel · Modelo Isolation Forest · Monitoreo continuo 24/7</p>
+    </div>
+  </div>
+  <div class="demo-banner">⚠ Mock — Iniciativa C del TP de Gestión de la IA</div>
+</div>
+
+<div class="container">
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card info">
+      <div class="kpi-label">Transacciones del mes</div>
+      <div class="kpi-value">427</div>
+      <div class="kpi-trend">USD 2,1M procesados</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Procesadas sin alerta</div>
+      <div class="kpi-value green">414</div>
+      <div class="kpi-trend">96,9% normal</div>
+    </div>
+    <div class="kpi-card alert">
+      <div class="kpi-label">En revisión humana</div>
+      <div class="kpi-value amber">11</div>
+      <div class="kpi-trend">Score medio (40–70)</div>
+    </div>
+    <div class="kpi-card danger">
+      <div class="kpi-label">Bloqueadas precautoriamente</div>
+      <div class="kpi-value red">2</div>
+      <div class="kpi-trend">USD 28.300 protegidos</div>
+    </div>
+  </div>
+
+  <!-- Transacciones -->
+  <div class="panel">
+    <div class="panel-title">
+      <span>Transacciones recientes</span>
+      <div class="filters">
+        <button class="filter-btn active" onclick="setFilter('todas', this)">Todas</button>
+        <button class="filter-btn" onclick="setFilter('alta', this)">Alta anomalía</button>
+        <button class="filter-btn" onclick="setFilter('media', this)">Media</button>
+        <button class="filter-btn" onclick="setFilter('baja', this)">Normal</button>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha / hora</th>
+          <th>Beneficiario</th>
+          <th>Concepto</th>
+          <th style="text-align: right;">Monto</th>
+          <th>Aprobador</th>
+          <th>Score</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="txTable"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Drawer de detalle -->
+<div class="drawer-bg" id="drawerBg" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div id="drawerContent"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==========================================
+// TRANSACCIONES SIMULADAS
+// ==========================================
+const transactions = [
+  // Transacciones normales (baja anomalía)
+  {
+    id: "TX-2026-0427", fecha: "09/06/2026 10:15", beneficiario: "ACEROS DEL SUR S.A.",
+    iban: "AR9627000010101234567890", concepto: "Compra acero — Factura A 0042-00012345",
+    monto: 8200, aprobador: "Laura Méndez (Gerente Adm.)", score: 4, estado: "approved",
+    razones_low: ["Beneficiario habitual (47 operaciones previas)", "IBAN coincide con histórico", "Monto dentro del rango habitual (USD 7.500 – 9.000)", "Aprobado en horario laboral", "Patrón estacional normal"]
+  },
+  {
+    id: "TX-2026-0428", fecha: "09/06/2026 11:32", beneficiario: "TRANSPORTES LOGÍSTICA S.R.L.",
+    iban: "AR1500300023456789012345", concepto: "Flete junio — Factura A 0001-00023456",
+    monto: 3450, aprobador: "Laura Méndez (Gerente Adm.)", score: 6, estado: "approved",
+    razones_low: ["Beneficiario habitual (24 operaciones previas)", "IBAN verificado", "Monto consistente con servicios mensuales", "Aprobado en horario laboral"]
+  },
+  {
+    id: "TX-2026-0429", fecha: "09/06/2026 14:08", beneficiario: "ENERGÍA ARGENTINA S.A.",
+    iban: "AR3000170024567890123456", concepto: "Servicio eléctrico mayo 2026",
+    monto: 6780, aprobador: "Sistema (débito automático)", score: 3, estado: "approved",
+    razones_low: ["Servicio recurrente identificado", "Débito automático autorizado", "Monto dentro del rango estacional esperado"]
+  },
+  {
+    id: "TX-2026-0430", fecha: "09/06/2026 15:44", beneficiario: "CAUCHOS PREMIUM S.A.",
+    iban: "AR9407140025678901234567", concepto: "Compra materia prima — Factura A 0003-00034567",
+    monto: 11500, aprobador: "Laura Méndez (Gerente Adm.)", score: 8, estado: "approved",
+    razones_low: ["Beneficiario habitual (18 operaciones previas)", "IBAN verificado", "Monto ligeramente alto pero dentro de rango anual"]
+  },
+
+  // Transacciones medias (revisión humana)
+  {
+    id: "TX-2026-0431", fecha: "09/06/2026 16:21", beneficiario: "INSUMOS METALÚRGICOS S.A.",
+    iban: "AR8500300026789012345678", concepto: "Compra materia prima nueva línea",
+    monto: 4900, aprobador: "Laura Méndez (Gerente Adm.)", score: 52, estado: "pending",
+    razones_medium: ["Nuevo proveedor (primera operación)", "Sin histórico previo para comparación", "Monto moderado, consistente con compras similares de otros proveedores nuevos", "Aprobador habitual"]
+  },
+  {
+    id: "TX-2026-0432", fecha: "09/06/2026 17:55", beneficiario: "SOFTWARE LICENCIAS DEL PLATA",
+    iban: "AR0700070027890123456789", concepto: "Renovación anual licencias Office",
+    monto: 12400, aprobador: "Laura Méndez (Gerente Adm.)", score: 48, estado: "pending",
+    razones_medium: ["Pago anual no recurrente (no aparece en frecuencias mensuales típicas)", "Beneficiario con solo 1 operación previa (mismo concepto, año anterior)", "Monto coherente con operación previa similar (USD 10.800 en 2025)"]
+  },
+  {
+    id: "TX-2026-0433", fecha: "08/06/2026 23:15", beneficiario: "MARTÍN R. GARCÍA",
+    iban: "AR0500080028901234567890", concepto: "Devolución compra equivocada",
+    monto: 850, aprobador: "Diego Fernández (Vendedor)", score: 64, estado: "pending",
+    razones_medium: ["Transferencia a persona física inusual", "Aprobada fuera de horario laboral", "Aprobador no habitual para pagos (vendedor en lugar de Administración)", "Monto bajo reduce riesgo"]
+  },
+
+  // Transacciones anómalas (bloqueadas)
+  {
+    id: "TX-2026-0434", fecha: "09/06/2026 19:42", beneficiario: "ACEROS DEL SUR S.A.",
+    iban: "AR9627000010101234567899", concepto: "Pago urgente — Cambio de cuenta bancaria",
+    monto: 14800, aprobador: "Solicitado por correo (sin aprobación interna)", score: 87, estado: "blocked",
+    razones_high: [
+      "🚨 IBAN parecido al habitual pero distinto en 2 dígitos finales (potencial suplantación)",
+      "🚨 Aprobación solicitada fuera de horario laboral (19:42 hs un viernes)",
+      "🚨 Concepto inusual: 'cambio de cuenta bancaria' sin notificación formal previa",
+      "🚨 Monto significativamente superior al promedio habitual con ACEROS DEL SUR (USD 8.200)",
+      "🚨 Patrón de urgencia detectado en el correo de solicitud (red flag clásica de fraude)",
+      "🚨 No hay registro previo de cambio de IBAN en el sistema de proveedores"
+    ]
+  },
+  {
+    id: "TX-2026-0435", fecha: "08/06/2026 18:30", beneficiario: "DISTRIBUIDORA REGIONAL S.A.",
+    iban: "AR0900050029012345678901", concepto: "Pago a proveedor",
+    monto: 13500, aprobador: "Pedro Jimenez (no autorizado)", score: 79, estado: "blocked",
+    razones_high: [
+      "🚨 Aprobador no incluido en lista blanca para pagos > USD 5.000",
+      "🚨 Beneficiario sin operaciones previas registradas en el sistema",
+      "🚨 Concepto genérico sin referencia a factura específica",
+      "🚨 IBAN no validado contra base de proveedores aprobados"
+    ]
+  }
+];
+
+let currentFilter = "todas";
+
+function getScoreClass(score) {
+  if (score >= 70) return "high";
+  if (score >= 40) return "medium";
+  return "low";
+}
+
+function getScoreLabel(score) {
+  if (score >= 70) return "ALTA";
+  if (score >= 40) return "MEDIA";
+  return "Normal";
+}
+
+function getStatusLabel(estado) {
+  const labels = { approved: "Aprobada", pending: "En revisión", blocked: "Bloqueada" };
+  return labels[estado] || estado;
+}
+
+function renderTable() {
+  const tbody = document.getElementById("txTable");
+  tbody.innerHTML = "";
+
+  const filtered = transactions.filter(tx => {
+    if (currentFilter === "todas") return true;
+    if (currentFilter === "alta") return tx.score >= 70;
+    if (currentFilter === "media") return tx.score >= 40 && tx.score < 70;
+    if (currentFilter === "baja") return tx.score < 40;
+  });
+
+  filtered.forEach(tx => {
+    const scoreClass = getScoreClass(tx.score);
+    const row = document.createElement("tr");
+    row.className = "tx-row";
+    row.onclick = () => openDrawer(tx);
+    row.innerHTML = `
+      <td>${tx.fecha}</td>
+      <td><strong>${tx.beneficiario}</strong></td>
+      <td>${tx.concepto}</td>
+      <td style="text-align: right;" class="amount">USD ${tx.monto.toLocaleString()}</td>
+      <td style="font-size: 12px; color: #6b7280;">${tx.aprobador}</td>
+      <td>
+        <span class="score-pill score-${scoreClass}">
+          <span class="score-dot ${scoreClass}"></span>
+          ${tx.score} — ${getScoreLabel(tx.score)}
+        </span>
+      </td>
+      <td><span class="status-pill status-${tx.estado}">${getStatusLabel(tx.estado)}</span></td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderTable();
+}
+
+function openDrawer(tx) {
+  const scoreClass = getScoreClass(tx.score);
+  const reasons = tx.razones_high || tx.razones_medium || tx.razones_low || [];
+  const reasonCardClass = tx.score >= 70 ? "danger" : "";
+  const reasonTitle = tx.score >= 70
+    ? "Por qué se bloqueó esta transacción"
+    : tx.score >= 40
+      ? "Variables que disparan revisión humana"
+      : "Validaciones que confirman normalidad";
+
+  let actionButtons = "";
+  if (tx.estado === "pending") {
+    actionButtons = `
+      <div class="action-buttons">
+        <button class="btn btn-approve" onclick="handleAction('${tx.id}', 'approve')">✓ Aprobar</button>
+        <button class="btn btn-review" onclick="handleAction('${tx.id}', 'escalate')">⚠ Escalar a CFO</button>
+        <button class="btn btn-block" onclick="handleAction('${tx.id}', 'reject')">✕ Rechazar</button>
+      </div>`;
+  } else if (tx.estado === "blocked") {
+    actionButtons = `
+      <div class="action-buttons">
+        <button class="btn btn-review" onclick="handleAction('${tx.id}', 'investigate')">🔍 Investigar</button>
+        <button class="btn btn-block" onclick="handleAction('${tx.id}', 'confirm_block')">🛑 Confirmar bloqueo</button>
+      </div>`;
+  }
+
+  document.getElementById("drawerContent").innerHTML = `
+    <div class="drawer-header">
+      <div>
+        <h2>${tx.id}</h2>
+        <p style="font-size: 12px; color: #6b7280; margin-top: 4px;">${tx.fecha}</p>
+      </div>
+      <button class="close-btn" onclick="closeDrawer()">✕</button>
+    </div>
+
+    <div class="score-meter">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <strong style="font-size: 13px;">Score de anomalía</strong>
+        <span class="score-pill score-${scoreClass}">
+          <span class="score-dot ${scoreClass}"></span>
+          ${tx.score} / 100 — ${getScoreLabel(tx.score)}
+        </span>
+      </div>
+      <div class="meter-track">
+        <div class="meter-pointer" style="left: ${tx.score}%;"></div>
+      </div>
+      <div class="meter-labels">
+        <span>0 — Normal</span>
+        <span>40 — Revisión</span>
+        <span>70 — Anomalía</span>
+        <span>100</span>
+      </div>
+    </div>
+
+    <div class="detail-row">
+      <strong>Beneficiario</strong>
+      <span>${tx.beneficiario}</span>
+    </div>
+    <div class="detail-row">
+      <strong>IBAN destino</strong>
+      <span style="font-family: monospace; font-size: 12px;">${tx.iban}</span>
+    </div>
+    <div class="detail-row">
+      <strong>Concepto</strong>
+      <span>${tx.concepto}</span>
+    </div>
+    <div class="detail-row">
+      <strong>Monto</strong>
+      <span class="amount" style="font-size: 16px; color: #1F4E79;">USD ${tx.monto.toLocaleString()}</span>
+    </div>
+    <div class="detail-row">
+      <strong>Aprobador</strong>
+      <span>${tx.aprobador}</span>
+    </div>
+    <div class="detail-row">
+      <strong>Estado actual</strong>
+      <span class="status-pill status-${tx.estado}">${getStatusLabel(tx.estado)}</span>
+    </div>
+
+    <div class="reason-card ${reasonCardClass}">
+      <h4>${reasonTitle}</h4>
+      <ul>
+        ${reasons.map(r => `<li>${r}</li>`).join("")}
+      </ul>
+    </div>
+
+    ${actionButtons}
+
+    <div style="margin-top: 24px; padding: 12px; background: #f9fafb; border-radius: 8px; font-size: 11px; color: #6b7280; line-height: 1.6;">
+      <strong>📋 Variables analizadas por el modelo:</strong> monto, beneficiario, IBAN/CBU, hora, frecuencia histórica con el beneficiario, similitud entre IBAN y los habituales, identidad y comportamiento del aprobador, canal usado, día de la semana, concepto.<br><br>
+      <strong>🤖 Algoritmo:</strong> Isolation Forest entrenado sobre 14.500 transacciones históricas de APDP.
+    </div>
+  `;
+
+  document.getElementById("drawerBg").classList.add("open");
+  document.getElementById("drawer").classList.add("open");
+}
+
+function closeDrawer() {
+  document.getElementById("drawerBg").classList.remove("open");
+  document.getElementById("drawer").classList.remove("open");
+}
+
+function handleAction(txId, action) {
+  const messages = {
+    approve: "✓ Transacción aprobada. El modelo aprenderá de esta validación para reducir falsos positivos.",
+    escalate: "⚠ Caso escalado al CFO Martín Sotelo. Notificación enviada.",
+    reject: "✕ Transacción rechazada. Reintento bloqueado por 24 hs.",
+    investigate: "🔍 Caso enviado a investigación. Auditoría interna notificada.",
+    confirm_block: "🛑 Bloqueo confirmado. Caso documentado en registro de incidentes y reportado a Sistemas."
+  };
+  showToast(messages[action] || "Acción realizada.");
+  closeDrawer();
+}
+
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 3500);
+}
+
+// Init
+window.onload = renderTable;
+</script>
+</body>
+</html>

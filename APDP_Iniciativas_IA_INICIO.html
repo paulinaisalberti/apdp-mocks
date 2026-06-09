@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APDP — Iniciativas de IA · Anexo digital al TP</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+    min-height: 100vh;
+    color: #1f2937;
+    padding: 40px 20px;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .hero {
+    background: white;
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    margin-bottom: 32px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .logo-icon {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, #1F4E79 0%, #2E75B6 100%);
+    color: white;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 20px;
+  }
+  .logo-text {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1F4E79;
+  }
+  .hero h1 {
+    font-size: 28px;
+    color: #1F4E79;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+  .hero .subtitle {
+    font-size: 15px;
+    color: #6b7280;
+    max-width: 700px;
+    margin: 0 auto 20px;
+    line-height: 1.5;
+  }
+  .meta {
+    display: inline-flex;
+    gap: 16px;
+    padding: 12px 20px;
+    background: #f3f4f6;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #4b5563;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .meta strong { color: #1F4E79; }
+  .intro {
+    background: rgba(255,255,255,0.95);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+    color: #1f2937;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .intro h2 {
+    color: #1F4E79;
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+  .card {
+    background: white;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+  }
+  .card-header {
+    padding: 24px;
+    color: white;
+    position: relative;
+  }
+  .card-a .card-header { background: linear-gradient(135deg, #1F4E79 0%, #2E75B6 100%); }
+  .card-b .card-header { background: linear-gradient(135deg, #047857 0%, #10b981 100%); }
+  .card-c .card-header { background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%); }
+  .card-letter {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    font-size: 48px;
+    font-weight: 800;
+    opacity: 0.25;
+    line-height: 1;
+  }
+  .card-eyebrow {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.85;
+    margin-bottom: 8px;
+  }
+  .card-title {
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 12px;
+  }
+  .card-tech {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .card-body {
+    padding: 20px 24px;
+    flex: 1;
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.5;
+  }
+  .card-features {
+    list-style: none;
+    margin-top: 16px;
+  }
+  .card-features li {
+    padding: 4px 0;
+    padding-left: 20px;
+    position: relative;
+    font-size: 12px;
+  }
+  .card-features li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #10b981;
+    font-weight: 700;
+  }
+  .card-footer {
+    padding: 16px 24px 24px;
+    border-top: 1px solid #f3f4f6;
+  }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: #1F4E79;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: #2E75B6; }
+  .card-b .btn { background: #047857; }
+  .card-b .btn:hover { background: #10b981; }
+  .card-c .btn { background: #b91c1c; }
+  .card-c .btn:hover { background: #ef4444; }
+  .footer {
+    text-align: center;
+    color: white;
+    font-size: 12px;
+    opacity: 0.85;
+    padding: 20px;
+  }
+  .badge {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="hero">
+    <div class="logo">
+      <div class="logo-icon">AP</div>
+      <div class="logo-text">Autopartes del Plata S.A.</div>
+    </div>
+    <span class="badge">⚠ MOCKS DE DEMOSTRACIÓN</span>
+    <h1>Iniciativas de IA habilitadas por la propuesta</h1>
+    <p class="subtitle">
+      Tres prototipos funcionales que ilustran las iniciativas de Inteligencia Artificial descriptas en la sección 6.8 del Trabajo Práctico.
+      Cada mock se puede abrir, explorar e interactuar.
+    </p>
+    <div class="meta">
+      <span>📚 <strong>Materia:</strong> Gestión de la Inteligencia Artificial</span>
+      <span>🎓 <strong>UBA — FCE</strong></span>
+      <span>📅 <strong>Junio 2026</strong></span>
+    </div>
+  </div>
+
+  <div class="intro">
+    <h2>📌 Cómo leer estos prototipos</h2>
+    <p>
+      Estos tres mocks son <strong>demostraciones funcionales en HTML</strong> que no requieren instalación ni conexión a internet (excepto para cargar gráficos en la Iniciativa B). 
+      Cada uno representa una iniciativa de IA descripta en la sección 6.8 del documento principal del TP, aplicada al caso real de Autopartes del Plata S.A. 
+      Los datos son sintéticos pero diseñados de forma realista para reflejar lo que se vería en producción. Las funcionalidades de IA están simuladas con reglas determinísticas que imitan
+      el comportamiento esperable de modelos reales: en producción, estas mismas interfaces se conectarían a servicios como Microsoft Azure OpenAI, Azure ML, Microsoft Sentinel, etc.
+    </p>
+  </div>
+
+  <div class="grid">
+
+    <div class="card card-a">
+      <div class="card-header">
+        <div class="card-letter">A</div>
+        <div class="card-eyebrow">Iniciativa A</div>
+        <div class="card-title">Asistente Conversacional B2B para Distribuidores</div>
+        <span class="card-tech">LLM + Agente</span>
+      </div>
+      <div class="card-body">
+        Chat interactivo que atiende consultas técnicas de los 380 distribuidores 24/7.
+        Detecta marca, modelo, año y tipo de producto del vehículo, y responde con SKU, stock y precio con descuento aplicado.
+        <ul class="card-features">
+          <li>Catálogo simulado de 30 SKUs reales</li>
+          <li>Pattern matching sobre lenguaje natural</li>
+          <li>Botones de respuesta rápida</li>
+          <li>Escalamiento al vendedor humano</li>
+          <li>Tipeo simulado y animaciones</li>
+        </ul>
+      </div>
+      <div class="card-footer">
+        <a href="APDP_Iniciativa_A_Asistente_Conversacional.html" class="btn">Probar el asistente →</a>
+      </div>
+    </div>
+
+    <div class="card card-b">
+      <div class="card-header">
+        <div class="card-letter">B</div>
+        <div class="card-eyebrow">Iniciativa B</div>
+        <div class="card-title">Modelo Predictivo de Demanda por SKU</div>
+        <span class="card-tech">ML Supervisado (Regresión)</span>
+      </div>
+      <div class="card-body">
+        Dashboard ejecutivo con predicción de demanda mensual por SKU, intervalo de confianza,
+        simulación de escenarios macroeconómicos y alertas automáticas de ruptura o sobrestock.
+        <ul class="card-features">
+          <li>12 SKUs con histórico de 24 meses</li>
+          <li>Predicción a 6 meses con bandas P10–P90</li>
+          <li>Estacionalidad otoño-invierno realista</li>
+          <li>Slider de simulación de escenarios</li>
+          <li>Lista de alertas activas con drill-down</li>
+        </ul>
+      </div>
+      <div class="card-footer">
+        <a href="APDP_Iniciativa_B_Prediccion_Demanda.html" class="btn">Abrir el dashboard →</a>
+      </div>
+    </div>
+
+    <div class="card card-c">
+      <div class="card-header">
+        <div class="card-letter">C</div>
+        <div class="card-eyebrow">Iniciativa C</div>
+        <div class="card-title">Detección de Anomalías Financieras</div>
+        <span class="card-tech">ML No Supervisado (Anomaly Detection)</span>
+      </div>
+      <div class="card-body">
+        Sistema de monitoreo continuo de transacciones financieras que asigna un score de anomalía
+        y bloquea precautoriamente las transacciones sospechosas. Inspirado en el caso real de phishing
+        sufrido por APDP en febrero 2026.
+        <ul class="card-features">
+          <li>10 transacciones realistas (normales, sospechosas, fraudulentas)</li>
+          <li>Drawer de detalle con variables analizadas</li>
+          <li>Filtros por nivel de score</li>
+          <li>Acciones: aprobar, escalar, bloquear</li>
+          <li>Caso del intento de fraude de feb/26 incluido</li>
+        </ul>
+      </div>
+      <div class="card-footer">
+        <a href="APDP_Iniciativa_C_Anomalias_Financieras.html" class="btn">Abrir el sistema →</a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    Anexo digital al TP. Para uso académico exclusivo. Los nombres, marcas y datos son ficticios o simulados.
+  </div>
+
+</div>
+
+</body>
+</html>
